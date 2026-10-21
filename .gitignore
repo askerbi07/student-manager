@@ -1,0 +1,29 @@
+# ===== IDE: IntelliJ IDEA =====
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# ===== IDE: Eclipse =====
+.classpath
+.project
+.settings/
+.factorypath
+
+# ===== IDE: VS Code =====
+.vscode/
+
+# ===== Сборка / артефакты =====
+target/
+build/
+*.class
+
+# ===== Данные времени выполнения =====
+students.txt
+*.log
+
+# ===== Операционная система =====
+.DS_Store
+Thumbs.db
+desktop.ini
