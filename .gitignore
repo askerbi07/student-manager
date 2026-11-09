@@ -27,3 +27,7 @@ students.txt
 .DS_Store
 Thumbs.db
 desktop.ini
+*.db
+*.log
+*.err
+*.out
