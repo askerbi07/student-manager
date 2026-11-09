@@ -7,8 +7,8 @@ import java.util.Random;
 import java.util.stream.Stream;
 
 /**
- * Доп. задание 3: генерация случайных студентов ТОЛЬКО через Stream API
- * (Stream.generate ... limit ... forEach).
+ * Генерация случайных студентов через Stream API.
+ * Объект создаётся напрямую конструктором record Student.
  */
 public class StreamGenerator {
 
@@ -26,10 +26,6 @@ public class StreamGenerator {
         String group = "ГР-" + (RANDOM.nextInt(5) + 1);
         double gpa = 1.0 + Math.round(RANDOM.nextDouble() * 40) / 10.0;
         int gradeBook = RANDOM.nextInt(999) + 1;
-        return new Student.Builder()
-                .groupNumber(group)
-                .averageGpa(gpa)
-                .gradeBookNumber(gradeBook)
-                .build();
+        return new Student(group, gpa, gradeBook);
     }
 }

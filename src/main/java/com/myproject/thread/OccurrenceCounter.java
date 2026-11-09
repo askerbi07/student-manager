@@ -25,12 +25,6 @@ public class OccurrenceCounter {
     /** Максимальное время ожидания одной задачи, секунды. */
     private static final long TASK_TIMEOUT_SECONDS = 10;
 
-    public static int countAndPrint(CustomList<Student> list, int targetGradeBook) throws InterruptedException {
-        int result = countOccurrences(list, targetGradeBook);
-        System.out.println("Многопоточный подсчёт вхождений зачётки №" + targetGradeBook + " = " + result);
-        return result;
-    }
-
     public static int countOccurrences(CustomList<Student> list, int targetGradeBook) throws InterruptedException {
         int size = list.size();
         if (size == 0) {
@@ -64,7 +58,7 @@ public class OccurrenceCounter {
                 final int to = chunks[t][1];
                 futures[t] = executor.submit(() -> {
                     for (int i = from; i < to; i++) {
-                        if (list.get(i).getGradeBookNumber() == targetGradeBook) {
+                        if (list.get(i).gradeBookNumber() == targetGradeBook) {
                             counter.incrementAndGet();
                         }
                     }

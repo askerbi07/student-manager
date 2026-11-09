@@ -13,7 +13,7 @@ public class SortByGroup implements SortStrategy {
             for (int j = 0; j < size - 1 - i; j++) {
                 Student a = list.get(j);
                 Student b = list.get(j + 1);
-                if (compareStrings(a.getGroupNumber(), b.getGroupNumber()) > 0) {
+                if (compareStrings(a.groupNumber(), b.groupNumber()) > 0) {
                     Student tmp = a;
                     list.set(j, b);
                     list.set(j + 1, tmp);

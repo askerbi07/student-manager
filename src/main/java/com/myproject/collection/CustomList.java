@@ -1,81 +1,103 @@
 package com.myproject.collection;
 
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+
 /**
- * Собственная коллекция на обычном массиве Object[].
- * Без ArrayList/LinkedList и без готовых коллекций.
- * Методы по ТЗ: add, get, set, size.
+ * Простой динамический список (аналог ArrayList).
+ * now Iterable — поддерживает for-each и enhanced for.
  */
-public class CustomList<T> {
+public class CustomList<T> implements Iterable<T> {
+
+    private static final int DEFAULT_CAPACITY = 10;
 
     private Object[] elements;
     private int size;
 
-    private static final int DEFAULT_CAPACITY = 10;
-
     public CustomList() {
-        this.elements = new Object[DEFAULT_CAPACITY];
+        this(DEFAULT_CAPACITY);
+    }
+
+    public CustomList(int initialCapacity) {
+        if (initialCapacity < 0) {
+            throw new IllegalArgumentException("initialCapacity < 0: " + initialCapacity);
+        }
+        this.elements = new Object[initialCapacity];
         this.size = 0;
+    }
+
+    private void ensureCapacity(int needed) {
+        if (needed <= elements.length) {
+            return;
+        }
+        int newCapacity = elements.length == 0 ? DEFAULT_CAPACITY : elements.length * 2;
+        while (newCapacity < needed) {
+            newCapacity *= 2;
+        }
+        elements = Arrays.copyOf(elements, newCapacity);
     }
 
     public void add(T element) {
         ensureCapacity(size + 1);
-        elements[size] = element;
-        size++;
+        elements[size++] = element;
     }
 
-    @SuppressWarnings("unchecked")
     public T get(int index) {
-        checkIndex(index);
+        if (index < 0 || index >= size) {
+            throw new IndexOutOfBoundsException("index: " + index + ", size: " + size);
+        }
         return (T) elements[index];
     }
 
-    @SuppressWarnings("unchecked")
-    public void set(int index, T element) {
-        checkIndex(index);
+    public T set(int index, T element) {
+        if (index < 0 || index >= size) {
+            throw new IndexOutOfBoundsException("index: " + index + ", size: " + size);
+        }
+        @SuppressWarnings("unchecked")
+        T old = (T) elements[index];
         elements[index] = element;
+        return old;
     }
 
     public int size() {
         return size;
     }
 
-    public void clear() {
-        for (int i = 0; i < size; i++) {
-            elements[i] = null;
-        }
-        size = 0;
-    }
-
-    private void checkIndex(int index) {
+    @SuppressWarnings("unchecked")
+    public T removeAt(int index) {
         if (index < 0 || index >= size) {
-            throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + size);
+            throw new IndexOutOfBoundsException("index: " + index + ", size: " + size);
         }
-    }
-
-    // Ручное расширение массива (без Arrays.copyOf)
-    private void ensureCapacity(int minCapacity) {
-        if (minCapacity <= elements.length) {
-            return;
+        T removed = (T) elements[index];
+        int moved = size - index - 1;
+        if (moved > 0) {
+            System.arraycopy(elements, index + 1, elements, index, moved);
         }
-        int newCapacity = elements.length * 2;
-        if (newCapacity < minCapacity) {
-            newCapacity = minCapacity;
-        }
-        Object[] newElements = new Object[newCapacity];
-        for (int i = 0; i < size; i++) {
-            newElements[i] = elements[i];
-        }
-        this.elements = newElements;
+        elements[--size] = null;
+        return removed;
     }
 
     @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder("[");
-        for (int i = 0; i < size; i++) {
-            if (i > 0) sb.append(", ");
-            sb.append(elements[i]);
+    public Iterator<T> iterator() {
+        return new CustomListIterator();
+    }
+
+    private final class CustomListIterator implements Iterator<T> {
+
+        private int cursor;
+
+        @Override
+        public boolean hasNext() {
+            return cursor < size;
         }
-        sb.append("]");
-        return sb.toString();
+
+        @Override
+        public T next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+            return (T) elements[cursor++];
+        }
     }
 }

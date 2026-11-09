@@ -20,7 +20,7 @@ public class EvenValueSortStrategy implements SortStrategy {
         int[] evenPositions = new int[size];
         int evenCount = 0;
         for (int i = 0; i < size; i++) {
-            if (list.get(i).getGradeBookNumber() % 2 == 0) {
+            if (list.get(i).gradeBookNumber() % 2 == 0) {
                 evenObjects[evenCount] = list.get(i);
                 evenPositions[evenCount] = i;
                 evenCount++;
@@ -30,7 +30,7 @@ public class EvenValueSortStrategy implements SortStrategy {
         // 2) Сортируем чётные объекты "пузырьком" (вручную).
         for (int i = 0; i < evenCount - 1; i++) {
             for (int j = 0; j < evenCount - 1 - i; j++) {
-                if (evenObjects[j].getGradeBookNumber() > evenObjects[j + 1].getGradeBookNumber()) {
+                if (evenObjects[j].gradeBookNumber() > evenObjects[j + 1].gradeBookNumber()) {
                     Student tmp = evenObjects[j];
                     evenObjects[j] = evenObjects[j + 1];
                     evenObjects[j + 1] = tmp;

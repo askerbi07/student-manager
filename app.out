@@ -1,0 +1,23 @@
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::               (v3.2.11)
+
+03:35:42.139 [INFO] StudentManagerApplication - Starting StudentManagerApplication v1.0.0 using Java 21.0.12.1 with PID 15912 (C:\Users\askerbi07\Desktop\student-manager\target\student-manager.jar started by askerbi07 in C:\Users\askerbi07\Desktop\student-manager)
+03:35:42.140 [INFO] StudentManagerApplication - No active profile set, falling back to 1 default profile: "default"
+03:35:42.742 [INFO] TomcatWebServer - Tomcat initialized with port 8081 (http)
+03:35:42.751 [INFO] Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8081"]
+03:35:42.755 [INFO] StandardService - Starting service [Tomcat]
+03:35:42.755 [INFO] StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.31]
+03:35:42.779 [INFO] [/] - Initializing Spring embedded WebApplicationContext
+03:35:42.780 [INFO] ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 609 ms
+03:35:43.119 [INFO] Http11NioProtocol - Starting ProtocolHandler ["http-nio-8081"]
+03:35:43.140 [INFO] TomcatWebServer - Tomcat started on port 8081 (http) with context path ''
+03:35:43.153 [INFO] StudentManagerApplication - Started StudentManagerApplication in 1.25 seconds (process running for 1.642)
+03:35:51.555 [INFO] [/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+03:35:51.556 [INFO] DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+03:35:51.556 [INFO] DispatcherServlet - Completed initialization in 0 ms

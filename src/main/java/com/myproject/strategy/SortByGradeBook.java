@@ -13,7 +13,7 @@ public class SortByGradeBook implements SortStrategy {
             for (int j = 0; j < size - 1 - i; j++) {
                 Student a = list.get(j);
                 Student b = list.get(j + 1);
-                if (a.getGradeBookNumber() > b.getGradeBookNumber()) {
+                if (a.gradeBookNumber() > b.gradeBookNumber()) {
                     Student tmp = a;
                     list.set(j, b);
                     list.set(j + 1, tmp);

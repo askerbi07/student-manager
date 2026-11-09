@@ -1,78 +1,36 @@
 package com.myproject.model;
 
 /**
- * Модель "Студент" + ручной паттерн Builder (без Lombok).
+ * Студент как неизменяемая запись (Java 17 record).
+ * Единственный источник доменной валидации — компактный конструктор.
  */
-public class Student {
+public record Student(
+        String groupNumber,
+        double averageGpa,
+        int gradeBookNumber
+) {
 
-    private final String groupNumber;
-    private final double averageGpa;
-    private final int gradeBookNumber;
+    public Student {
+        if (groupNumber == null || groupNumber.trim().isEmpty()) {
+            throw new IllegalArgumentException("Номер группы не может быть пустым");
+        }
+        groupNumber = groupNumber.trim();
 
-    private Student(Builder builder) {
-        this.groupNumber = builder.groupNumber;
-        this.averageGpa = builder.averageGpa;
-        this.gradeBookNumber = builder.gradeBookNumber;
-    }
+        if (!Double.isFinite(averageGpa)) {
+            throw new IllegalArgumentException("Средний балл должен быть конечным числом (не NaN или Infinity)");
+        }
+        if (averageGpa < 1.0 || averageGpa > 5.0) {
+            throw new IllegalArgumentException("Средний балл должен быть от 1.0 до 5.0, получено: " + averageGpa);
+        }
 
-    public String getGroupNumber() {
-        return groupNumber;
-    }
-
-    public double getAverageGpa() {
-        return averageGpa;
-    }
-
-    public int getGradeBookNumber() {
-        return gradeBookNumber;
+        if (gradeBookNumber <= 0) {
+            throw new IllegalArgumentException("Номер зачётной книжки должен быть больше 0, получено: " + gradeBookNumber);
+        }
     }
 
     @Override
     public String toString() {
         return "Student{группа='" + groupNumber + "', балл=" + averageGpa
                 + ", зачётка=" + gradeBookNumber + "}";
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Student)) return false;
-        Student s = (Student) o;
-        return gradeBookNumber == s.gradeBookNumber
-                && Double.compare(s.averageGpa, averageGpa) == 0
-                && groupNumber.equals(s.groupNumber);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = groupNumber.hashCode();
-        result = 31 * result + Double.hashCode(averageGpa);
-        result = 31 * result + Integer.hashCode(gradeBookNumber);
-        return result;
-    }
-
-    public static class Builder {
-        private String groupNumber;
-        private double averageGpa;
-        private int gradeBookNumber;
-
-        public Builder groupNumber(String groupNumber) {
-            this.groupNumber = groupNumber;
-            return this;
-        }
-
-        public Builder averageGpa(double averageGpa) {
-            this.averageGpa = averageGpa;
-            return this;
-        }
-
-        public Builder gradeBookNumber(int gradeBookNumber) {
-            this.gradeBookNumber = gradeBookNumber;
-            return this;
-        }
-
-        public Student build() {
-            return new Student(this);
-        }
     }
 }

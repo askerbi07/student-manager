@@ -1,197 +1,194 @@
 package com.myproject;
 
-import com.myproject.collection.CustomList;
-import com.myproject.io.FileManager;
 import com.myproject.model.Student;
-import com.myproject.strategy.EvenValueSortStrategy;
-import com.myproject.strategy.SortByGpa;
-import com.myproject.strategy.SortByGradeBook;
-import com.myproject.strategy.SortByGroup;
-import com.myproject.strategy.SortStrategy;
-import com.myproject.thread.OccurrenceCounter;
-import com.myproject.util.StreamGenerator;
+import com.myproject.repository.RepositoryException;
+import com.myproject.service.StudentService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Component;
 
-import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
-/** Меню и бесконечный цикл. Выход — только по пункту "0. Выход". */
-public class Main {
+/**
+ * Консольный клиент. Отключён по умолчанию: активен только в Spring-профиле "cli".
+ */
+@Component
+@Profile("cli")
+public class Main implements CommandLineRunner {
 
-    private static final CustomList<Student> STUDENTS = new CustomList<>();
-    private static final FileManager FILE_MANAGER = new FileManager();
+    private static final Logger log = LoggerFactory.getLogger(Main.class);
+
+    private final StudentService service;
+    private final List<MenuItem> menuItems;
+
+    public Main(StudentService service) {
+        this.service = service;
+        this.menuItems = buildMenuItems();
+    }
 
     public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
-        SortStrategy byGroup = new SortByGroup();
-        SortStrategy byGpa = new SortByGpa();
-        SortStrategy byGradeBook = new SortByGradeBook();
-        SortStrategy byEven = new EvenValueSortStrategy();
+        String[] springArgs = args.length > 0 ? args : new String[] {"--spring.profiles.active=cli"};
+        StudentManagerApplication.main(springArgs);
+    }
 
-        System.out.println("=== МЕНЕДЖЕР СТУДЕНТОВ ===");
-        boolean running = true;
-        while (running) {
-            // Ввод мог оборваться (EOF) прямо перед выбором пункта меню —
-            // проверяем до печати меню, чтобы не показывать его зря.
-            if (!scanner.hasNextLine()) {
-                System.out.println("\nОбнаружен конец ввода (EOF). Завершение работы.");
-                System.exit(0);
+    @Override
+    public void run(String... args) {
+        run(new Scanner(System.in));
+    }
+
+    public void run(Scanner scanner) {
+        log.info("=== МЕНЕДЖЕР СТУДЕНТОВ ===");
+        try {
+            while (true) {
+                if (!scanner.hasNextLine()) {
+                    log.info("Обнаружен конец ввода (EOF). Завершение работы.");
+                    return;
+                }
+                printMenu();
+                int choice = readInt(scanner, "Введите пункт меню: ");
+                if (choice == 0) {
+                    log.info("Выход из программы. До свидания!");
+                    return;
+                }
+                if (choice < 1 || choice > menuItems.size()) {
+                    log.info("Неверный пункт меню.");
+                    continue;
+                }
+                MenuItem item = menuItems.get(choice - 1);
+                try {
+                    item.action().run(scanner);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    log.info("Операция прервана.");
+                } catch (RepositoryException e) {
+                    log.error("Ошибка базы данных: {}", e.getMessage(), e);
+                } catch (IllegalArgumentException e) {
+                    log.warn("Ошибка ввода: {}", e.getMessage());
+                }
             }
-            printMenu();
-            int choice = readInt(scanner, "Введите пункт меню: ");
-            switch (choice) {
-                case 1:  fillManually(scanner); break;
-                case 2:  fillRandom(scanner); break;
-                case 3:  loadFromFile(scanner); break;
-                case 4:  printCollection(); break;
-                case 5:  sortCollection(byGroup, "по номеру группы"); break;
-                case 6:  sortCollection(byGpa, "по среднему баллу"); break;
-                case 7:  sortCollection(byGradeBook, "по номеру зачётной книжки"); break;
-                case 8:  sortCollection(byEven, "по чётным номерам зачётных книжек (доп.)"); break;
-                case 9:  saveToFile(scanner); break;
-                case 10: countOccurrences(scanner); break;
-                case 0:
-                    System.out.println("Выход из программы. До свидания!");
-                    running = false;
-                    break;
-                default:
-                    System.out.println("Неверный пункт меню.");
-            }
+        } catch (InputClosedException e) {
+            log.info("Обнаружен конец ввода (EOF). Завершение работы.");
         }
-        scanner.close();
     }
 
-    private static void printMenu() {
-        System.out.println();
-        System.out.println("========== МЕНЮ ==========");
-        System.out.println("1.  Заполнить коллекцию вручную");
-        System.out.println("2.  Заполнить коллекцию случайными данными (Stream API)");
-        System.out.println("3.  Загрузить коллекцию из файла");
-        System.out.println("4.  Вывести коллекцию в консоль");
-        System.out.println("5.  Сортировка по номеру группы");
-        System.out.println("6.  Сортировка по среднему баллу");
-        System.out.println("7.  Сортировка по номеру зачётной книжки");
-        System.out.println("8.  Сортировка по чётным номерам зачёток (доп.)");
-        System.out.println("9.  Сохранить коллекцию в файл (дозапись)");
-        System.out.println("10. Многопоточный подсчёт вхождений (доп.)");
-        System.out.println("0.  Выход");
-        System.out.println("==========================");
+    private List<MenuItem> buildMenuItems() {
+        List<MenuItem> items = new ArrayList<>();
+        items.add(new MenuItem("Заполнить коллекцию вручную", this::fillManually));
+        items.add(new MenuItem("Заполнить случайными данными (Stream API)", this::fillRandom));
+        items.add(new MenuItem("Вывести коллекцию из базы данных", (scanner) -> showCollection()));
+        addSortItem(items, "group", "по номеру группы");
+        addSortItem(items, "gpa", "по среднему баллу");
+        addSortItem(items, "gradebook", "по номеру зачётной книжки");
+        addSortItem(items, "even", "по чётным номерам зачётных книжек (доп.)");
+        items.add(new MenuItem("Удалить студентов по номеру зачётной книжки", this::deleteByGradeBook));
+        items.add(new MenuItem("Многопоточный подсчёт вхождений (доп.)", this::countOccurrences));
+        return items;
     }
 
-    private static void fillManually(Scanner scanner) {
+    private void addSortItem(List<MenuItem> items, String key, String label) {
+        items.add(new MenuItem("Сортировка " + label, (scanner) -> sortCollection(key, label)));
+    }
+
+    private void printMenu() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("========== МЕНЮ ==========\n");
+        for (int i = 0; i < menuItems.size(); i++) {
+            sb.append(i + 1).append(".  ").append(menuItems.get(i).label()).append('\n');
+        }
+        sb.append("0.  Выход\n");
+        sb.append("==========================");
+        log.info("\n{}", sb);
+    }
+
+    private void fillManually(Scanner scanner) {
         int n = readInt(scanner, "Введите количество студентов: ");
         if (n <= 0) {
-            System.out.println("Количество должно быть больше 0.");
+            log.info("Количество должно быть больше 0.");
             return;
         }
         int added = 0;
         for (int i = 0; i < n; i++) {
-            System.out.println("--- Студент #" + (i + 1) + " ---");
+            log.info("--- Студент #{} ---", i + 1);
             String group = readLine(scanner, "Номер группы: ");
             double gpa = readDouble(scanner, "Средний балл (1.0-5.0): ");
             int gradeBook = readInt(scanner, "Номер зачётной книжки (>0): ");
             try {
-                FileManager.validate(group, gpa, gradeBook);
-                Student student = new Student.Builder()
-                        .groupNumber(group)
-                        .averageGpa(gpa)
-                        .gradeBookNumber(gradeBook)
-                        .build();
-                STUDENTS.add(student);
+                service.addStudent(group, gpa, gradeBook);
                 added++;
             } catch (IllegalArgumentException e) {
-                System.out.println("Ошибка валидации: " + e.getMessage() + " (запись пропущена)");
+                log.warn("Ошибка валидации: {} (запись пропущена)", e.getMessage());
             }
         }
-        System.out.println("Добавлено: " + added + " из " + n + ". Всего в коллекции: " + STUDENTS.size());
+        log.info("Добавлено: {} из {}. Всего в базе: {}", added, n, service.size());
     }
 
-    private static void fillRandom(Scanner scanner) {
+    private void fillRandom(Scanner scanner) {
         int n = readInt(scanner, "Введите количество студентов для генерации: ");
         if (n <= 0) {
-            System.out.println("Количество должно быть больше 0.");
+            log.info("Количество должно быть больше 0.");
             return;
         }
-        CustomList<Student> generated = StreamGenerator.generate(n);
-        for (int i = 0; i < generated.size(); i++) {
-            STUDENTS.add(generated.get(i));
-        }
-        System.out.println("Сгенерировано: " + generated.size() + ". Всего в коллекции: " + STUDENTS.size());
+        int added = service.generateRandom(n);
+        log.info("Сгенерировано: {}. Всего в базе: {}", added, service.size());
     }
 
-    private static void loadFromFile(Scanner scanner) {
-        String path = readLine(scanner, "Введите путь к файлу: ");
-        try {
-            CustomList<Student> loaded = FILE_MANAGER.loadFromFile(path);
-            for (int i = 0; i < loaded.size(); i++) {
-                STUDENTS.add(loaded.get(i));
-            }
-            System.out.println("Загружено из файла: " + loaded.size() + ". Всего в коллекции: " + STUDENTS.size());
-        } catch (IOException e) {
-            System.out.println("Ошибка чтения файла: " + e.getMessage());
-        } catch (IllegalArgumentException e) {
-            System.out.println("Ошибка валидации данных: " + e.getMessage());
-        }
-    }
-
-    private static void printCollection() {
-        if (STUDENTS.size() == 0) {
-            System.out.println("Коллекция пуста.");
+    private void showCollection() {
+        List<Student> students = service.snapshot();
+        if (students.isEmpty()) {
+            log.info("Коллекция в базе пуста.");
             return;
         }
-        System.out.println("Коллекция (размер: " + STUDENTS.size() + "):");
-        for (int i = 0; i < STUDENTS.size(); i++) {
-            System.out.println("  [" + i + "] " + STUDENTS.get(i));
-        }
+        printSnapshot(students, "Коллекция из базы данных (размер: " + students.size() + "):");
     }
 
-    private static void sortCollection(SortStrategy strategy, String description) {
-        if (STUDENTS.size() == 0) {
-            System.out.println("Коллекция пуста. Нечего сортировать.");
+    private void sortCollection(String key, String description) {
+        List<Student> sorted = service.sortedSnapshot(key);
+        if (sorted.isEmpty()) {
+            log.info("Коллекция в базе пуста. Нечего сортировать.");
             return;
         }
-        strategy.sort(STUDENTS);
-        System.out.println("Выполнена сортировка " + description + ":");
-        for (int i = 0; i < STUDENTS.size(); i++) {
-            System.out.println("  [" + i + "] " + STUDENTS.get(i));
-        }
+        printSnapshot(sorted, "Выполнена сортировка " + description + ":");
     }
 
-    private static void saveToFile(Scanner scanner) {
-        if (STUDENTS.size() == 0) {
-            System.out.println("Коллекция пуста. Нечего сохранять.");
+    private void deleteByGradeBook(Scanner scanner) {
+        int gradeBook = readInt(scanner, "Введите номер зачётной книжки для удаления: ");
+        if (gradeBook <= 0) {
+            log.info("Номер зачётной книжки должен быть положительным.");
             return;
         }
-        String path = readLine(scanner, "Введите путь к файлу для сохранения: ");
-        try {
-            FILE_MANAGER.appendToFile(path, STUDENTS);
-            System.out.println("Сохранено в файл (режим дозаписи): " + path);
-        } catch (IOException e) {
-            System.out.println("Ошибка записи в файл: " + e.getMessage());
-        }
+        int deleted = service.deleteByGradeBookNumber(gradeBook);
+        log.info("Удалено записей с зачёткой №{}: {}", gradeBook, deleted);
     }
 
-    private static void countOccurrences(Scanner scanner) {
-        if (STUDENTS.size() == 0) {
-            System.out.println("Коллекция пуста.");
+    private void countOccurrences(Scanner scanner) throws InterruptedException {
+        if (service.size() == 0) {
+            log.info("Коллекция в базе пуста.");
             return;
         }
         int target = readInt(scanner, "Введите номер зачётной книжки (N) для подсчёта: ");
-        try {
-            OccurrenceCounter.countAndPrint(STUDENTS, target);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            System.out.println("Подсчёт был прерван.");
-        }
+        int count = service.countOccurrences(target);
+        log.info("Вхождений зачётки №{}: {}", target, count);
     }
 
-    private static int readInt(Scanner scanner, String prompt) {
+    private void printSnapshot(List<Student> students, String title) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(title);
+        int index = 0;
+        for (Student student : students) {
+            sb.append("\n  [").append(index++).append("] ").append(student);
+        }
+        log.info("\n{}", sb);
+    }
+
+    private int readInt(Scanner scanner, String prompt) {
         System.out.print(prompt);
         while (true) {
-            // Проверка стоит первой в теле цикла, поэтому срабатывает и при
-            // первом входе в метод, и после повторного ввода при ошибке формата.
             if (!scanner.hasNextLine()) {
-                System.out.println("\nОбнаружен конец ввода (EOF). Завершение работы.");
-                System.exit(0);
+                throw new InputClosedException();
             }
             String line = scanner.nextLine().trim();
             try {
@@ -202,12 +199,11 @@ public class Main {
         }
     }
 
-    private static double readDouble(Scanner scanner, String prompt) {
+    private double readDouble(Scanner scanner, String prompt) {
         System.out.print(prompt);
         while (true) {
             if (!scanner.hasNextLine()) {
-                System.out.println("\nОбнаружен конец ввода (EOF). Завершение работы.");
-                System.exit(0);
+                throw new InputClosedException();
             }
             String line = scanner.nextLine().trim();
             try {
@@ -218,12 +214,24 @@ public class Main {
         }
     }
 
-    private static String readLine(Scanner scanner, String prompt) {
+    private String readLine(Scanner scanner, String prompt) {
         System.out.print(prompt);
         if (!scanner.hasNextLine()) {
-            System.out.println("\nОбнаружен конец ввода (EOF). Завершение работы.");
-            System.exit(0);
+            throw new InputClosedException();
         }
         return scanner.nextLine().trim();
+    }
+
+    private interface MenuAction {
+        void run(Scanner scanner) throws InterruptedException;
+    }
+
+    private record MenuItem(String label, MenuAction action) {
+    }
+
+    private static class InputClosedException extends RuntimeException {
+        InputClosedException() {
+            super("Входной поток закрыт (EOF)");
+        }
     }
 }
